@@ -9,7 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
-    <!-- 2. 核心庫 (順序極其重要) -->
+    <!-- 2. 核心庫 -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -40,7 +40,6 @@
             background: #fee2e2; color: #b91c1c; padding: 15px; font-size: 12px;
             z-index: 10000; border-top: 2px solid #ef4444; font-family: monospace;
         }
-        /* 美化滾動條 */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -49,7 +48,7 @@
 <body>
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <p style="margin-top: 15px; font-weight: 800; color: #64748b; font-size: 14px;">正在初始化流線圖組件...</p>
+        <p style="margin-top: 15px; font-weight: 800; color: #64748b; font-size: 14px;">正在最佳化重大異常模組...</p>
     </div>
 
     <div id="error-display"></div>
@@ -69,7 +68,7 @@
             ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area 
         } = window.Recharts || {};
 
-        // --- 遊戲排序定義 ---
+        // --- 核心遊戲排序與定義 ---
         const ONLINE_ORDER = ['明星3缺1', '滿貫大亨', '捕魚大玩咖', '唯舞獨尊', '競技麻將2', '儲值專線', 'Vegas Frenzy', '大滿貫', '玩星派對', '幸運拉霸GO'];
         const COMMERCIAL_ORDER = ['金猴爺', '金虎爺', '金好運娛樂城', '金好運娛樂城MY (TH,SG)', '金好運娛樂城JP', '海王寶藏', '撞球好手', '三國戰紀', 'Slotverse', '跑跑英雄'];
         const ISSUE_TYPES = ["帳號問題", "伺服器相關問題", "儲值相關問題", "安裝、下載", "系統相關問題", "活動領獎問題", "規則設定問題", "反應與建議", "客戶服務", "行動版問題"];
@@ -102,7 +101,39 @@
             );
         };
 
-        // --- 專案分析列 (含流線圖) ---
+        // --- 重大異常項目 (優化後的點擊展開組件) ---
+        const IncidentItem = ({ summary, description, severity }) => {
+            const [isExpanded, setIsExpanded] = useState(false);
+            const isCritical = severity === 'critical';
+            
+            return (
+                <div className={`mb-3 rounded-2xl transition-all duration-300 ring-1 ${isExpanded ? 'bg-white shadow-lg ring-slate-200' : 'bg-slate-50 ring-slate-100 hover:ring-slate-200'}`}>
+                    <div className="px-5 py-4 flex justify-between items-center cursor-pointer select-none" onClick={() => setIsExpanded(!isExpanded)}>
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${isCritical ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+                                <Icon name="alert-circle" size={16} className={isCritical ? 'animate-pulse' : ''} />
+                            </div>
+                            <span className={`font-black text-sm ${isCritical ? 'text-rose-900' : 'text-amber-900'}`}>{summary}</span>
+                        </div>
+                        <Icon name={isExpanded ? "chevron-up" : "chevron-down"} size={16} className="text-slate-400" />
+                    </div>
+                    <div className={`expand-content ${isExpanded ? 'max-h-[400px] opacity-100 border-t border-slate-100' : 'max-h-0 opacity-0'}`}>
+                        <div className="px-5 py-4 text-xs text-slate-600 leading-relaxed font-medium bg-white">
+                            <p className="mb-2 text-[10px] font-black uppercase text-slate-400 tracking-widest">異常詳細內容</p>
+                            {description}
+                            <div className="mt-3 flex gap-2 items-center">
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${isCritical ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                                    {isCritical ? 'Critical' : 'Warning'}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400">更新於 今日 14:30</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 專案分析列 ---
         const ProjectAnalysisRow = ({ name, timeScale, trendData }) => {
             const [isExpanded, setIsExpanded] = useState(false);
             if (!trendData) return null;
@@ -150,25 +181,13 @@
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700 }} />
                                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700 }} />
-                                                <Tooltip 
-                                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} 
-                                                    itemStyle={{ fontSize: '11px', fontWeight: 'bold' }}
-                                                />
+                                                <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} itemStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
                                                 {ISSUE_TYPES.map((type, index) => (
-                                                    <Area 
-                                                        key={type} 
-                                                        type="monotone" 
-                                                        dataKey={type} 
-                                                        stackId="1" 
-                                                        stroke={COLORS[index % COLORS.length]} 
-                                                        fill={COLORS[index % COLORS.length]} 
-                                                        fillOpacity={0.8}
-                                                    />
+                                                    <Area key={type} type="monotone" dataKey={type} stackId="1" stroke={COLORS[index % COLORS.length]} fill={COLORS[index % COLORS.length]} fillOpacity={0.8} />
                                                 ))}
                                             </AreaChart>
                                         </ResponsiveContainer>
                                     </div>
-                                    <p className="mt-4 text-[10px] text-slate-400 font-bold italic text-center uppercase tracking-widest">各色區塊代表不同問題類型的堆疊分佈趨勢</p>
                                 </div>
                             </div>
                         </div>
@@ -191,13 +210,8 @@
             }, []);
 
             const currentList = activeTab === 'general' ? ONLINE_ORDER : COMMERCIAL_ORDER;
-            
-            const chartData = useMemo(() => currentList.map(name => ({ 
-                name, 
-                count: 120 + Math.floor(Math.random() * 300) 
-            })).sort((a, b) => b.count - a.count), [activeTab]);
+            const chartData = useMemo(() => currentList.map(name => ({ name, count: 120 + Math.floor(Math.random() * 300) })).sort((a, b) => b.count - a.count), [activeTab]);
 
-            // 增強型趨勢數據生成 (包含各類型細分，用於流線圖)
             const getTrend = useMemo(() => {
                 const labels = timeScale === 'weekly' ? ["W8", "W7", "W6", "W5", "W4", "W3", "W2", "W1"] : ["02/07", "02/06", "02/05", "02/04", "02/03"];
                 return labels.map(name => {
@@ -215,7 +229,7 @@
                 const radius = innerRadius + (outerRadius - innerRadius) * 1.6;
                 const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
                 const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-                return <text x={x} y={y} fill="#64748b" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="10" fontWeight="800">{`${name} ${value}件`}</text>;
+                return <text x={x} y={y} fill="#64748b" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="10" fontWeight="800">{`${name} ${value}件 (${(percent * 100).toFixed(0)}%)`}</text>;
             };
 
             return (
@@ -248,17 +262,31 @@
                         </div>
 
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-10 mb-12 items-start">
+                            {/* 重大異常區塊 - 已優化為點擊展開 */}
                             <div className="xl:col-span-1 bg-white p-10 rounded-[3.5rem] border shadow-xl min-h-[600px]">
                                 <h3 className="flex items-center gap-4 font-black text-slate-900 text-3xl tracking-tighter mb-10"><Icon name="alert-triangle" className="text-rose-600" size={36}/> 本日重大異常</h3>
-                                <div className="p-5 bg-rose-50 border border-rose-100 rounded-[2rem] mb-4">
-                                    <div className="flex items-center gap-2 mb-2"><Icon name="alert-circle" size={16} className="text-rose-600"/><span className="font-black text-rose-900 text-sm">明星3缺1 iOS 支付逾時</span></div>
-                                    <p className="text-xs text-rose-700 font-bold">iOS 玩家在儲值時發生 SSL 憑證交握報錯，技術部正與金流端排查中。</p>
+                                <div className="space-y-3">
+                                    <IncidentItem 
+                                        summary="明星3缺1 iOS 支付逾時" 
+                                        description="大量玩家反應點擊品項後卡在讀取畫面，查為金流端 SSL 憑證交握異常，導致支付請求無法送達 App Store。技術團隊目前已更換備援金流通道。" 
+                                        severity="critical" 
+                                    />
+                                    <IncidentItem 
+                                        summary="金猴爺活動伺服器回應延遲" 
+                                        description="午間 12:00 活動開啟瞬時流量過載，資料庫讀寫產生鎖定，影響紅包發放約 15 分鐘。目前已完成負載均衡調整。" 
+                                        severity="warning" 
+                                    />
+                                    <IncidentItem 
+                                        summary="滿貫大亨資料庫維護延遲" 
+                                        description="今日例行維護因執行磁碟重組作業耗時較長，原定 12:00 開機延後至 12:15。已對全服補償體力道具。" 
+                                        severity="warning" 
+                                    />
                                 </div>
-                                <div className="p-5 bg-amber-50 border border-amber-100 rounded-[2rem]">
-                                    <div className="flex items-center gap-2 mb-2"><Icon name="alert-circle" size={16} className="text-amber-600"/><span className="font-black text-amber-900 text-sm">商用遊戲伺服器壓力過載</span></div>
-                                    <p className="text-xs text-amber-700 font-bold">午間瞬時進線量激增 150%，部分區域反應登入排隊時間過長。</p>
+                                <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center">
+                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Live Feed Active</p>
                                 </div>
                             </div>
+
                             <div className="xl:col-span-2 bg-white p-10 rounded-[3.5rem] border shadow-xl min-h-[600px] overflow-hidden">
                                 <h3 className="font-black text-slate-900 text-3xl tracking-tighter flex items-center gap-3 mb-12"><Icon name="layers" className="text-indigo-600" size={28}/> {activeTab === 'general' ? '線上' : '商用'}遊戲問題量排行</h3>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
