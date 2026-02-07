@@ -3,25 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataInsight v4.48 PRO - 客服日報管理系統</title>
+    <title>DataInsight v4.49 PRO - 客服日報管理系統</title>
     
     <!-- 1. 核心樣式 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
     <!-- 2. 核心庫 (順序極其重要) -->
-    <!-- React & React DOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    
-    <!-- Babel: 讓瀏覽器即時解析 JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <!-- Recharts 依賴: PropTypes 必須在 Recharts 前 -->
     <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
-    
-    <!-- Lucide 圖示 -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
@@ -42,27 +35,27 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* 錯誤提示樣式 */
         #error-display {
             display: none; position: fixed; bottom: 0; left: 0; width: 100%;
             background: #fee2e2; color: #b91c1c; padding: 15px; font-size: 12px;
             z-index: 10000; border-top: 2px solid #ef4444; font-family: monospace;
         }
+        /* 美化滾動條 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
     </style>
 </head>
 <body>
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <p style="margin-top: 15px; font-weight: 800; color: #64748b; font-size: 14px;">系統正在初始化腳本...</p>
+        <p style="margin-top: 15px; font-weight: 800; color: #64748b; font-size: 14px;">正在初始化流線圖組件...</p>
     </div>
 
-    <!-- 錯誤診斷區 -->
     <div id="error-display"></div>
-
     <div id="root"></div>
 
     <script type="text/babel">
-        // 捕捉初始化錯誤
         window.onerror = function(msg, url, lineNo, columnNo, error) {
             const display = document.getElementById('error-display');
             display.style.display = 'block';
@@ -71,24 +64,20 @@
         };
 
         const { useState, useMemo, useEffect } = React;
-        
-        // 確保 Recharts 全域變數已載入
         const { 
             BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
             ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area 
         } = window.Recharts || {};
 
-        // --- 核心遊戲排序定義 ---
+        // --- 遊戲排序定義 ---
         const ONLINE_ORDER = ['明星3缺1', '滿貫大亨', '捕魚大玩咖', '唯舞獨尊', '競技麻將2', '儲值專線', 'Vegas Frenzy', '大滿貫', '玩星派對', '幸運拉霸GO'];
         const COMMERCIAL_ORDER = ['金猴爺', '金虎爺', '金好運娛樂城', '金好運娛樂城MY (TH,SG)', '金好運娛樂城JP', '海王寶藏', '撞球好手', '三國戰紀', 'Slotverse', '跑跑英雄'];
         const ISSUE_TYPES = ["帳號問題", "伺服器相關問題", "儲值相關問題", "安裝、下載", "系統相關問題", "活動領獎問題", "規則設定問題", "反應與建議", "客戶服務", "行動版問題"];
-        const COLORS = ['#4f46e5', '#0ea5e9', '#f59e0b', '#ec4899', '#8b5cf6', '#10b981', '#f43f5e', '#64748b', '#06b6d4', '#6366f1'];
+        const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4', '#0ea5e9', '#4f46e5', '#1e293b'];
 
         // --- 工具組件 ---
         const Icon = ({ name, size = 24, className = "" }) => {
-            useEffect(() => { 
-                if (window.lucide) window.lucide.createIcons(); 
-            }, [name]);
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
             return <i data-lucide={name} className={className} style={{ width: size, height: size, display: 'inline-block' }}></i>;
         };
 
@@ -113,27 +102,7 @@
             );
         };
 
-        const IncidentItem = ({ summary, description, severity }) => {
-            const [isExpanded, setIsExpanded] = useState(false);
-            return (
-                <div className="mb-3 rounded-2xl bg-slate-50 ring-1 ring-slate-100 overflow-hidden transition-all hover:bg-white hover:shadow-lg">
-                    <div className="px-5 py-4 flex justify-between items-center cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
-                        <div className="flex items-center gap-3">
-                            <div className={`w-2 h-2 rounded-full ${severity === 'critical' ? 'bg-rose-500 animate-pulse' : 'bg-amber-500'}`}></div>
-                            <span className="font-bold text-slate-800 text-sm">{summary}</span>
-                        </div>
-                        <Icon name={isExpanded ? "chevron-up" : "chevron-down"} size={16} className="text-slate-400" />
-                    </div>
-                    {isExpanded && (
-                        <div className="px-5 pb-4 text-xs text-slate-500 leading-relaxed border-t border-slate-100 pt-3 bg-white">
-                            {description}
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        // --- 專案分析列 ---
+        // --- 專案分析列 (含流線圖) ---
         const ProjectAnalysisRow = ({ name, timeScale, trendData }) => {
             const [isExpanded, setIsExpanded] = useState(false);
             if (!trendData) return null;
@@ -163,34 +132,43 @@
                     {isExpanded && (
                         <div className="px-10 pb-10 animate-fade-in">
                             <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 border-t pt-10 mt-2">
-                                <div className="xl:col-span-5 bg-white p-8 rounded-[2.5rem] border shadow-sm">
-                                    <h4 className="text-sm font-black mb-8 flex items-center gap-3"><Icon name="activity" size={20} className="text-indigo-600" /> 問題類型分佈</h4>
-                                    <div className="h-[300px]">
+                                <div className="xl:col-span-12 bg-white p-8 rounded-[2.5rem] border shadow-sm">
+                                    <div className="flex justify-between items-center mb-8">
+                                        <h4 className="text-sm font-black flex items-center gap-3"><Icon name="activity" size={20} className="text-indigo-600" /> 問題類型流線分佈圖 (Stream Graph)</h4>
+                                        <div className="flex gap-4">
+                                            {ISSUE_TYPES.slice(0, 5).map((t, i) => (
+                                                <div key={t} className="flex items-center gap-1.5">
+                                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i] }}></div>
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase">{t}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="h-[400px] w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie data={ISSUE_TYPES.map((t,i)=>({name:t, value: 5+Math.floor(Math.random()*20)}))} innerRadius={60} outerRadius={90} dataKey="value">
-                                                    {ISSUE_TYPES.map((e,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
-                                                </Pie>
-                                                <Tooltip />
-                                            </PieChart>
+                                            <AreaChart data={trendData} margin={{ left: -20 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700 }} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700 }} />
+                                                <Tooltip 
+                                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} 
+                                                    itemStyle={{ fontSize: '11px', fontWeight: 'bold' }}
+                                                />
+                                                {ISSUE_TYPES.map((type, index) => (
+                                                    <Area 
+                                                        key={type} 
+                                                        type="monotone" 
+                                                        dataKey={type} 
+                                                        stackId="1" 
+                                                        stroke={COLORS[index % COLORS.length]} 
+                                                        fill={COLORS[index % COLORS.length]} 
+                                                        fillOpacity={0.8}
+                                                    />
+                                                ))}
+                                            </AreaChart>
                                         </ResponsiveContainer>
                                     </div>
-                                </div>
-                                <div className="xl:col-span-7">
-                                    <h4 className="text-sm font-black mb-6 flex items-center gap-3"><Icon name="database" size={22} className="text-indigo-600" /> 明細數據矩陣</h4>
-                                    <div className="bg-white rounded-[2.5rem] border shadow-md overflow-x-auto text-xs">
-                                        <table className="w-full text-left border-collapse">
-                                            <thead><tr className="bg-slate-50 text-slate-400 font-black uppercase border-b"><th className="pl-6 py-4">問題類型</th>{trendData.map(d=><th key={d.name} className="text-center">{d.name}</th>)}</tr></thead>
-                                            <tbody>
-                                                {ISSUE_TYPES.slice(0,6).map(type=>(
-                                                    <tr key={type} className="border-b hover:bg-slate-50 transition-colors">
-                                                        <td className="font-bold text-slate-600 pl-6 py-4">{type}</td>
-                                                        {trendData.map(d=><td key={d.name} className="text-center font-medium text-slate-500">{Math.floor(Math.random()*15)}</td>)}
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    <p className="mt-4 text-[10px] text-slate-400 font-bold italic text-center uppercase tracking-widest">各色區塊代表不同問題類型的堆疊分佈趨勢</p>
                                 </div>
                             </div>
                         </div>
@@ -205,7 +183,6 @@
             const [timeScale, setTimeScale] = useState('weekly');
             
             useEffect(() => {
-                // 模擬數據載入完畢後隱藏 Overlay
                 setTimeout(() => {
                     const overlay = document.getElementById('loading-overlay');
                     if (overlay) overlay.style.display = 'none';
@@ -220,9 +197,19 @@
                 count: 120 + Math.floor(Math.random() * 300) 
             })).sort((a, b) => b.count - a.count), [activeTab]);
 
-            const getTrend = () => (timeScale === 'weekly' ? ["W8", "W7", "W6", "W5", "W4", "W3", "W2", "W1"] : ["02/07", "02/06", "02/05", "02/04", "02/03"]).map(name => ({
-                name, count: 40 + Math.floor(Math.random() * 100)
-            }));
+            // 增強型趨勢數據生成 (包含各類型細分，用於流線圖)
+            const getTrend = useMemo(() => {
+                const labels = timeScale === 'weekly' ? ["W8", "W7", "W6", "W5", "W4", "W3", "W2", "W1"] : ["02/07", "02/06", "02/05", "02/04", "02/03"];
+                return labels.map(name => {
+                    const dataPoint = { name, count: 0 };
+                    ISSUE_TYPES.forEach(type => {
+                        const val = 5 + Math.floor(Math.random() * 25);
+                        dataPoint[type] = val;
+                        dataPoint.count += val;
+                    });
+                    return dataPoint;
+                });
+            }, [timeScale]);
 
             const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, value }) => {
                 const radius = innerRadius + (outerRadius - innerRadius) * 1.6;
@@ -237,7 +224,7 @@
                         <div className="max-w-screen-2xl mx-auto px-8 w-full flex justify-between items-center">
                             <div className="flex items-center gap-4">
                                 <div className="bg-slate-900 p-2.5 rounded-2xl shadow-lg rotate-2"><Icon name="shield-check" className="text-white" /></div>
-                                <div><h1 className="font-black text-2xl tracking-tighter text-slate-900 leading-none">DataInsight <span className="bg-indigo-600 text-white text-[9px] px-2 py-0.5 rounded uppercase">DEMO v4.48</span></h1><p className="text-[9px] text-slate-400 font-black tracking-widest uppercase mt-1">Presentation Hub</p></div>
+                                <div><h1 className="font-black text-2xl tracking-tighter text-slate-900 leading-none">DataInsight <span className="bg-indigo-600 text-white text-[9px] px-2 py-0.5 rounded uppercase">v4.49 PRO</span></h1><p className="text-[9px] text-slate-400 font-black tracking-widest uppercase mt-1">Presentation Hub</p></div>
                             </div>
                             <div className="flex items-center gap-3 px-5 py-2.5 bg-slate-100 rounded-2xl border">
                                 <Icon name="calendar" size={15} className="text-slate-400" />
@@ -263,8 +250,14 @@
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-10 mb-12 items-start">
                             <div className="xl:col-span-1 bg-white p-10 rounded-[3.5rem] border shadow-xl min-h-[600px]">
                                 <h3 className="flex items-center gap-4 font-black text-slate-900 text-3xl tracking-tighter mb-10"><Icon name="alert-triangle" className="text-rose-600" size={36}/> 本日重大異常</h3>
-                                <IncidentItem summary="明星3缺1 iOS 內購校驗異常" description="大量玩家反應點擊品項後卡在讀取畫面，查為金流端節點連線逾時。" severity="critical" />
-                                <IncidentItem summary="滿貫大亨資料庫定期維護延遲" description="例行維護因磁碟掃描耗時較長，開機時間延後 15 分鐘。" severity="warning" />
+                                <div className="p-5 bg-rose-50 border border-rose-100 rounded-[2rem] mb-4">
+                                    <div className="flex items-center gap-2 mb-2"><Icon name="alert-circle" size={16} className="text-rose-600"/><span className="font-black text-rose-900 text-sm">明星3缺1 iOS 支付逾時</span></div>
+                                    <p className="text-xs text-rose-700 font-bold">iOS 玩家在儲值時發生 SSL 憑證交握報錯，技術部正與金流端排查中。</p>
+                                </div>
+                                <div className="p-5 bg-amber-50 border border-amber-100 rounded-[2rem]">
+                                    <div className="flex items-center gap-2 mb-2"><Icon name="alert-circle" size={16} className="text-amber-600"/><span className="font-black text-amber-900 text-sm">商用遊戲伺服器壓力過載</span></div>
+                                    <p className="text-xs text-amber-700 font-bold">午間瞬時進線量激增 150%，部分區域反應登入排隊時間過長。</p>
+                                </div>
                             </div>
                             <div className="xl:col-span-2 bg-white p-10 rounded-[3.5rem] border shadow-xl min-h-[600px] overflow-hidden">
                                 <h3 className="font-black text-slate-900 text-3xl tracking-tighter flex items-center gap-3 mb-12"><Icon name="layers" className="text-indigo-600" size={28}/> {activeTab === 'general' ? '線上' : '商用'}遊戲問題量排行</h3>
@@ -305,7 +298,7 @@
                             </div>
                             <div className="space-y-6">
                                 {currentList.map(name => (
-                                    <ProjectAnalysisRow key={name} name={name} timeScale={timeScale} trendData={getTrend()} />
+                                    <ProjectAnalysisRow key={name} name={name} timeScale={timeScale} trendData={getTrend} />
                                 ))}
                             </div>
                         </div>
@@ -313,13 +306,12 @@
                     
                     <footer className="mt-10 border-t border-slate-200 py-16 opacity-30 text-center flex flex-col items-center gap-3">
                         <Icon name="shield-check" size={32} className="text-slate-400"/>
-                        <p className="text-[10px] font-black tracking-[0.4em] uppercase">DataInsight Intelligence Suite • v4.48 GitHub Presentation</p>
+                        <p className="text-[10px] font-black tracking-[0.4em] uppercase">DataInsight Intelligence Suite • v4.49 GitHub Presentation</p>
                     </footer>
                 </div>
             );
         }
 
-        // 啟動 React
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
